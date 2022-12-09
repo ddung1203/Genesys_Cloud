@@ -1,0 +1,73 @@
+#! /usr/bin/python3
+
+import base64, sys, requests, os
+import PureCloudPlatformClientV2
+from pprint import pprint
+from PureCloudPlatformClientV2.rest import ApiException
+import pymysql
+
+def run():
+
+  print("-------------------------------------------------------------")
+  print("- Dialer Call List Management -")
+  print("-------------------------------------------------------------")
+
+  # Credentials
+  CLIENT_ID = "" 
+  CLIENT_SECRET = ""
+  ORG_REGION = "ap_northeast_2"  # eg. us_east_1
+
+  # Set environment
+  region = PureCloudPlatformClientV2.PureCloudRegionHosts[ORG_REGION]
+  PureCloudPlatformClientV2.configuration.host = region.get_api_host()
+
+  # OAuth when using Client Credentials
+  api_client = PureCloudPlatformClientV2.api_client.ApiClient() \
+              .get_client_credentials_token(CLIENT_ID, CLIENT_SECRET)
+
+
+  # Use your own IDs here
+  contact_list_id = ""
+  campaign_id = ""
+
+  # Genesys Cloud Objects
+  outbound_api = PureCloudPlatformClientV2.OutboundApi(api_client)
+
+  # Get the campaign's configuration
+  try:
+      campaign_info = outbound_api.get_outbound_campaign(campaign_id)
+  except ApiException as e:
+      print(f"Exception when calling OutboundApi->get_outbound_campaign: {e}")
+      sys.exit()
+
+  pprint(f"Campaign info: {campaign_info}")
+
+  # If campaign is not on, update it so it is on
+  if campaign_info.campaign_status != 'on':
+      campaign_info.campaign_status = 'on'
+  
+      # datetime properties need to be converted to string if part of a request
+      # these are optional so we'll just be assigning a blank string.
+      # This won't affect the object's properties in Genesys Cloud side.
+      campaign_info.date_modified = ""
+      campaign_info.date_created = ""
+  
+      print("Activating Campaign")
+  
+      try:
+          outbound_api.put_outbound_campaign(campaign_id, campaign_info)
+      except ApiException as e:
+          print(f"Exception when calling OutboundApi->put_outbound_campaign: {e}")
+          sys.exit()
+  
+      print("Campaign activated.")
+  
+  return  '''<!DOCTYPE HTML><html>
+  <head>
+    <title>Flask app</title>
+  </head>
+  <body>
+    <h1><a href="/">GS Neotek</a></h1>
+    <h2>Complete!!</h2>
+  </body>
+</html>'''
